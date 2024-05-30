@@ -666,6 +666,27 @@ person = Person.from_xml(<<~DATA)
 DATA
 ```
 
+To define default XML namespace to a node you can set the prefix to nil
+
+```ruby
+class Person < Shale::Mapper
+  attribute :name, Shale::Type::String
+
+  xml do
+    root 'person'
+    namespace 'http://ns1.com', nil
+
+    map_element 'name', to: :name
+  end
+end
+
+person = Person.from_xml(<<~DATA)
+<person xmlns="http://ns1.com">
+  <name>John</name>
+</person>
+DATA
+```
+
 ### Rendering nil values
 
 For JSON, YAML, TOML and XML by default, elements with `nil` value are not rendered.
