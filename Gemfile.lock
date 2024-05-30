@@ -13,11 +13,13 @@ GEM
     csv (3.2.8)
     diff-lcs (1.5.1)
     docile (1.4.0)
+    equivalent-xml (0.6.0)
+      nokogiri (>= 1.4.3)
     json (2.7.1)
     language_server-protocol (3.17.0.3)
-    mini_portile2 (2.8.1)
-    nokogiri (1.13.10)
-      mini_portile2 (~> 2.8.0)
+    nokogiri (1.13.10-arm64-darwin)
+      racc (~> 1.4)
+    nokogiri (1.13.10-x86_64-linux)
       racc (~> 1.4)
     ox (2.14.12)
     parallel (1.24.0)
@@ -74,6 +76,7 @@ PLATFORMS
 
 DEPENDENCIES
   csv
+  equivalent-xml
   nokogiri (= 1.13.10)
   ox
   rake (~> 13.1)

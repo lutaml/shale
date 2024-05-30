@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'simplecov'
+require 'rspec/matchers'
+require 'equivalent-xml'
 
 SimpleCov.start do
   add_filter '/spec/'

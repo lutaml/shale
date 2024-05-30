@@ -16,5 +16,6 @@ gem 'csv'
 
 group :test do
   gem 'rspec', '~> 3.13.0'
+  gem 'equivalent-xml'
   gem 'simplecov', '~> 0.22.0', require: false
 end
