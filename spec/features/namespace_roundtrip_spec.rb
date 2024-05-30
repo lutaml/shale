@@ -9,7 +9,7 @@ class NamespaceWithNilPrefix  < Shale::Mapper
 
   xml do
     root 'collection'
-    namespace 'http://metanorma.org', nil
+    namespace 'http://ns1.com', nil
 
     map_attribute 'output1', to: :output1
     map_element 'output2', to: :output2
@@ -22,7 +22,7 @@ class NamespaceWithPrefix  < Shale::Mapper
 
   xml do
     root 'collection'
-    namespace 'http://metanorma.org', "meta"
+    namespace 'http://ns1.com', "ns1"
 
     map_attribute 'output1', to: :output1
     map_element 'output2', to: :output2
@@ -37,7 +37,7 @@ RSpec.describe "namespaces with prefixes" do
   describe "namespace with nil prefix" do
     let(:xml) do
       <<~XML
-        <collection xmlns="http://metanorma.org" output1='A'>
+        <collection xmlns="http://ns1.com" output1='A'>
           <output2>John</output2>
         </collection>
       XML
@@ -55,9 +55,9 @@ RSpec.describe "namespaces with prefixes" do
   describe "namespace with prefix" do
     let(:xml) do
       <<~XML
-        <meta:collection xmlns:meta="http://metanorma.org" output1='A'>
-          <meta:output2>John</meta:output2>
-        </meta:collection>
+        <ns1:collection xmlns:ns1="http://ns1.com" output1='A'>
+          <ns1:output2>John</ns1:output2>
+        </ns1:collection>
       XML
     end
 
