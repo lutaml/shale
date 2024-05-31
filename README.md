@@ -666,7 +666,8 @@ person = Person.from_xml(<<~DATA)
 DATA
 ```
 
-To define default XML namespace to a node you can set the prefix to nil
+To set the [default XML namespace](https://www.w3.org/TR/xml-names/#dt-defaultNS)
+of an element, set the prefix to `nil`.
 
 ```ruby
 class Person < Shale::Mapper
@@ -674,14 +675,14 @@ class Person < Shale::Mapper
 
   xml do
     root 'person'
-    namespace 'http://ns1.com', nil
+    namespace 'http://example.org/person', nil
 
     map_element 'name', to: :name
   end
 end
 
 person = Person.from_xml(<<~DATA)
-<person xmlns="http://ns1.com">
+<person xmlns="http://example.org/person">
   <name>John</name>
 </person>
 DATA
