@@ -68,6 +68,7 @@ module Shale
         @default_namespace = Descriptor::XmlNamespace.new
         @finalized = false
         @render_nil_default = false
+        @preserve_namespaces = false
       end
 
       # Map element to attribute
@@ -220,6 +221,15 @@ module Shale
       # @api private
       def finalized?
         @finalized
+      end
+
+      # Query the "preserve_namespaces" instance variable
+      #
+      # @return [true false]
+      #
+      # @api private
+      def preserve_namespaces?
+        @preserve_namespaces
       end
 
       # @api private

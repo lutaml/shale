@@ -94,6 +94,10 @@ module Shale
 
           first&.text
         end
+
+        def add_namespace(prefix, namespace)
+          @node.add_namespace(prefix, namespace) if namespace
+        end
       end
     end
   end
