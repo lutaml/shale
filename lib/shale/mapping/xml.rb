@@ -95,6 +95,15 @@ module Shale
         @render_nil_default = val
       end
 
+      # Set preserve_namespaces value
+      #
+      # @param [true, false] val
+      #
+      # @api private
+      def preserve_namespaces(val)
+        @preserve_namespaces = val
+      end
+
       # Map group of nodes to mapping methods
       #
       # @param [Symbol] from

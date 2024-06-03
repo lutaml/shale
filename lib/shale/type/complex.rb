@@ -655,7 +655,8 @@ module Shale
           only: nil,
           except: nil,
           context: nil,
-          version: nil
+          version: nil,
+          element_or_doc: nil
         )
           unless instance.is_a?(model)
             msg = "argument is a '#{instance.class}' but should be a '#{model}'"
@@ -671,7 +672,8 @@ module Shale
               doc,
               only: only,
               except: except,
-              context: context
+              context: context,
+              element_or_doc: doc
             )
             doc.add_element(doc.doc, element)
 
@@ -680,7 +682,8 @@ module Shale
 
           element = doc.create_element(node_name)
 
-          doc.add_namespace(
+          element_or_doc = doc_or_element(element, element_or_doc)
+          element_or_doc.add_namespace(
             xml_mapping.default_namespace.prefix,
             xml_mapping.default_namespace.name
           )
@@ -718,7 +721,7 @@ module Shale
               value = receiver.send(attribute.name) if receiver
 
               if mapping.render_nil? || !value.nil?
-                doc.add_namespace(mapping.namespace.prefix, mapping.namespace.name)
+                element_or_doc.add_namespace(mapping.namespace.prefix, mapping.namespace.name)
                 doc.add_attribute(element, mapping.prefixed_name, value)
               end
             end
@@ -803,7 +806,11 @@ module Shale
               value = receiver.send(attribute.name) if receiver
 
               if mapping.render_nil? || !value.nil?
-                doc.add_namespace(mapping.namespace.prefix, mapping.namespace.name)
+                if value.class.respond_to?(:xml_mapping) && value.class.xml_mapping.preserve_namespaces?
+                  add_namespace_to_element = true
+                else
+                  element_or_doc.add_namespace(mapping.namespace.prefix, mapping.namespace.name)
+                end
               end
 
               if value.nil?
@@ -821,8 +828,10 @@ module Shale
                     mapping.cdata,
                     only: attribute_only,
                     except: attribute_except,
-                    context: context
+                    context: context,
+                    element_or_doc: element_or_doc
                   )
+                  add_namespace_to_element = add_namespace_to_child(child, mapping) if child && add_namespace_to_element
                   doc.add_element(element, child)
                 end
               else
@@ -833,8 +842,10 @@ module Shale
                   mapping.cdata,
                   only: attribute_only,
                   except: attribute_except,
-                  context: context
+                  context: context,
+                  element_or_doc: element_or_doc
                 )
+                add_namespace_to_element = add_namespace_to_child(child, mapping) if child && add_namespace_to_element
                 doc.add_element(element, child)
               end
             end
@@ -990,6 +1001,33 @@ module Shale
           end
 
           receiver
+        end
+
+
+        # Inserts namespace in the passed nokogiri element
+        #
+        # @param [Nokogiri element, Shale::Adapter::Nokogiri::Node | Shale::Adapter::Nokogiri::Document] only
+        #
+        # @return [Shale::Adapter::Nokogiri::Node | Shale::Adapter::Nokogiri::Document]
+        #
+        # @api public
+        def doc_or_element(element, element_or_doc)
+          return element_or_doc unless xml_mapping.preserve_namespaces?
+
+          Adapter::Nokogiri::Node.new(element)
+        end
+
+        # Inserts namespace in the passed nokogiri element
+        #
+        # @param [Nokogiri element, Mapping element] only
+        #
+        # @return [false]
+        #
+        # @api public
+        def add_namespace_to_child(element, mapping)
+          element = Adapter::Nokogiri::Node.new(element)
+          element.add_namespace(mapping.namespace.prefix, mapping.namespace.name)
+          false
         end
       end
 
