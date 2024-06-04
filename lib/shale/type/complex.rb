@@ -551,6 +551,8 @@ module Shale
               else
                 mapper.send(mapping.method_from, instance, node)
               end
+
+              instance.all_content << mapping
             else
               receiver_attributes = get_receiver_attributes(mapping)
               attribute = receiver_attributes[mapping.attribute]
@@ -590,6 +592,8 @@ module Shale
               else
                 instance.send(attribute.setter, casted_value)
               end
+
+              instance.all_content << mapping
             end
           end
 
@@ -690,153 +694,63 @@ module Shale
           only = to_partial_render_attributes(only)
           except = to_partial_render_attributes(except)
 
-          xml_mapping.attributes.each_value do |mapping|
-            if mapping.group
-              grouping.add(mapping, :attribute, nil)
-            elsif mapping.method_to
-              mapper = new
-
-              if mapper.method(mapping.method_to).arity == 4
-                mapper.send(mapping.method_to, instance, element, doc, context)
-              else
-                mapper.send(mapping.method_to, instance, element, doc)
-              end
-            else
-              if mapping.receiver
-                receiver = instance.send(mapping.receiver)
-              else
-                receiver = instance
-              end
-
-              receiver_attributes = get_receiver_attributes(mapping)
-              attribute = receiver_attributes[mapping.attribute]
-              next unless attribute
-
-              next if only && !only.key?(attribute.name)
-              next if except&.key?(attribute.name)
-
-              value = receiver.send(attribute.name) if receiver
-
-              if mapping.render_nil? || !value.nil?
-                doc.add_namespace(mapping.namespace.prefix, mapping.namespace.name)
-                doc.add_attribute(element, mapping.prefixed_name, value)
-              end
-            end
+          if xml_mapping.content
+            create_and_add_content_to_doc(
+              doc,
+              element,
+              xml_mapping.content,
+              instance,
+              only,
+              except,
+              grouping,
+              context
+            )
           end
 
-          content_mapping = xml_mapping.content
-
-          if content_mapping
-            if content_mapping.group
-              grouping.add(content_mapping, :content, nil)
-            elsif content_mapping.method_to
-              mapper = new
-
-              if mapper.method(content_mapping.method_to).arity == 4
-                mapper.send(content_mapping.method_to, instance, element, doc, context)
-              else
-                mapper.send(content_mapping.method_to, instance, element, doc)
-              end
-            else
-              if content_mapping.receiver
-                receiver = instance.send(content_mapping.receiver)
-              else
-                receiver = instance
-              end
-
-              receiver_attributes = get_receiver_attributes(content_mapping)
-              attribute = receiver_attributes[content_mapping.attribute]
-
-              if attribute
-                skip = false
-
-                # rubocop:disable Metrics/BlockNesting
-                skip = true if only && !only.key?(attribute.name)
-                skip = true if except&.key?(attribute.name)
-
-                unless skip
-                  value = receiver.send(attribute.name) if receiver
-
-                  if content_mapping.cdata
-                    doc.create_cdata(value.to_s, element)
-                  else
-                    doc.add_text(element, value.to_s)
-                  end
-                end
-                # rubocop:enable Metrics/BlockNesting
-              end
-            end
+          xml_mapping.attributes.each do |_, mapping|
+            create_and_add_attribute_to_doc(
+              doc,
+              element,
+              mapping,
+              instance,
+              only,
+              except,
+              grouping,
+              context
+            )
           end
 
-          xml_mapping.elements.each_value do |mapping|
-            if mapping.group
-              grouping.add(mapping, :element, nil)
-            elsif mapping.method_to
-              mapper = new
+          if xml_mapping.preserve_element_order?
+            count = {}
+            instance.all_content.each do |mapping|
+              count[mapping] ||= -1
+              count[mapping] += 1
 
-              if mapper.method(mapping.method_to).arity == 4
-                mapper.send(mapping.method_to, instance, element, doc, context)
-              else
-                mapper.send(mapping.method_to, instance, element, doc)
-              end
-            else
-              if mapping.receiver
-                receiver = instance.send(mapping.receiver)
-              else
-                receiver = instance
-              end
-
-              receiver_attributes = get_receiver_attributes(mapping)
-              attribute = receiver_attributes[mapping.attribute]
-              next unless attribute
-
-              if only
-                attribute_only = only[attribute.name]
-                next unless only.key?(attribute.name)
-              end
-
-              if except
-                attribute_except = except[attribute.name]
-                next if except.key?(attribute.name) && attribute_except.nil?
-              end
-
-              value = receiver.send(attribute.name) if receiver
-
-              if mapping.render_nil? || !value.nil?
-                doc.add_namespace(mapping.namespace.prefix, mapping.namespace.name)
-              end
-
-              if value.nil?
-                if mapping.render_nil?
-                  child = doc.create_element(mapping.prefixed_name)
-                  doc.add_element(element, child)
-                end
-              elsif attribute.collection?
-                [*value].each do |v|
-                  next if v.nil?
-                  child = attribute.type.as_xml(
-                    v,
-                    mapping.prefixed_name,
-                    doc,
-                    mapping.cdata,
-                    only: attribute_only,
-                    except: attribute_except,
-                    context: context
-                  )
-                  doc.add_element(element, child)
-                end
-              else
-                child = attribute.type.as_xml(
-                  value,
-                  mapping.prefixed_name,
-                  doc,
-                  mapping.cdata,
-                  only: attribute_only,
-                  except: attribute_except,
-                  context: context
-                )
-                doc.add_element(element, child)
-              end
+              create_and_add_element_to_doc(
+                doc,
+                element,
+                mapping,
+                instance,
+                only,
+                except,
+                grouping,
+                context,
+                order: true,
+                index: count[mapping]
+              )
+            end
+          else
+            xml_mapping.elements.each do |_, mapping|
+              create_and_add_element_to_doc(
+                doc,
+                element,
+                mapping,
+                instance,
+                only,
+                except,
+                grouping,
+                context
+              )
             end
           end
 
@@ -851,6 +765,174 @@ module Shale
           end
 
           element
+        end
+
+        def create_and_add_content_to_doc(doc, element, content_mapping, instance, only, except, grouping, context)
+          if content_mapping.group
+            grouping.add(content_mapping, :content, nil)
+          elsif content_mapping.method_to
+            mapper = new
+
+            if mapper.method(content_mapping.method_to).arity == 4
+              mapper.send(content_mapping.method_to, instance, element, doc, context)
+            else
+              mapper.send(content_mapping.method_to, instance, element, doc)
+            end
+          else
+            if content_mapping.receiver
+              receiver = instance.send(content_mapping.receiver)
+            else
+              receiver = instance
+            end
+
+            receiver_attributes = get_receiver_attributes(content_mapping)
+            attribute = receiver_attributes[content_mapping.attribute]
+
+            if attribute
+              skip = false
+
+              # rubocop:disable Metrics/BlockNesting
+              skip = true if only && !only.key?(attribute.name)
+              skip = true if except&.key?(attribute.name)
+
+              unless skip
+                value = receiver.send(attribute.name) if receiver
+
+                if content_mapping.cdata
+                  doc.create_cdata(value.to_s, element)
+                else
+                  doc.add_text(element, value.to_s)
+                end
+              end
+              # rubocop:enable Metrics/BlockNesting
+            end
+          end
+        end
+
+        def create_and_add_attribute_to_doc(doc, element, mapping, instance, only, except, grouping, context)
+          if mapping.group
+            grouping.add(mapping, :attribute, nil)
+          elsif mapping.method_to
+            mapper = new
+
+            if mapper.method(mapping.method_to).arity == 4
+              mapper.send(mapping.method_to, instance, element, doc, context)
+            else
+              mapper.send(mapping.method_to, instance, element, doc)
+            end
+          else
+            if mapping.receiver
+              receiver = instance.send(mapping.receiver)
+            else
+              receiver = instance
+            end
+
+            receiver_attributes = get_receiver_attributes(mapping)
+            attribute = receiver_attributes[mapping.attribute]
+            return unless attribute
+
+            return if only && !only.key?(attribute.name)
+            return if except&.key?(attribute.name)
+
+            value = receiver.send(attribute.name) if receiver
+
+            if mapping.render_nil? || !value.nil?
+              doc.add_namespace(mapping.namespace.prefix, mapping.namespace.name)
+              doc.add_attribute(element, mapping.prefixed_name, value)
+            end
+          end
+        end
+
+        def create_and_add_element_to_doc(doc, element, mapping, instance, only, except, grouping, context, index: 0, order: false)
+          if mapping.group
+            grouping.add(mapping, :element, nil)
+          elsif mapping.method_to
+            mapper = new
+
+            if mapper.method(mapping.method_to).arity == 4
+              mapper.send(mapping.method_to, instance, element, doc, context)
+            else
+              mapper.send(mapping.method_to, instance, element, doc)
+            end
+          else
+            if mapping.receiver
+              receiver = instance.send(mapping.receiver)
+            else
+              receiver = instance
+            end
+
+            receiver_attributes = get_receiver_attributes(mapping)
+            attribute = receiver_attributes[mapping.attribute]
+            return unless attribute
+
+            if only
+              attribute_only = only[attribute.name]
+              return unless only.key?(attribute.name)
+            end
+
+            if except
+              attribute_except = except[attribute.name]
+              return if except.key?(attribute.name) && attribute_except.nil?
+            end
+
+            value = receiver.send(attribute.name) if receiver
+
+            if mapping.render_nil? || !value.nil?
+              doc.add_namespace(mapping.namespace.prefix, mapping.namespace.name)
+            end
+
+            if value.nil?
+              if mapping.render_nil?
+                child = doc.create_element(mapping.prefixed_name)
+                doc.add_element(element, child)
+              end
+            elsif attribute.collection?
+              values = receiver.send(attribute.name)
+
+              if order
+                v = values[index]
+
+                unless v.nil?
+                  child = attribute.type.as_xml(
+                    v,
+                    mapping.prefixed_name,
+                    doc,
+                    mapping.cdata,
+                    only: attribute_only,
+                    except: attribute_except,
+                    context: context
+                  )
+                  doc.add_element(element, child)
+                end
+              else
+                values.each do |v|
+                  unless v.nil?
+                    child = attribute.type.as_xml(
+                      v,
+                      mapping.prefixed_name,
+                      doc,
+                      mapping.cdata,
+                      only: attribute_only,
+                      except: attribute_except,
+                      context: context
+                    )
+                    doc.add_element(element, child)
+                  end
+                end
+              end
+            else
+              child = attribute.type.as_xml(
+                value,
+                mapping.prefixed_name,
+                doc,
+                mapping.cdata,
+                only: attribute_only,
+                except: attribute_except,
+                context: context
+              )
+              doc.add_element(element, child)
+            end
+          end
         end
 
         # Convert Object to XML
