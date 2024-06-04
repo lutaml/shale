@@ -139,6 +139,16 @@ module Shale
         else
           @model
         end
+
+        @model.class_eval do
+          unless self.method_defined?(:all_content)
+            self.define_method(:all_content) do
+              @all_content ||= []
+            end
+          end
+        end
+
+        @model
       end
 
       # Define attribute on class
@@ -371,15 +381,31 @@ module Shale
         end
       end
 
-      self.class.attributes.each do |name, attribute|
-        if props.key?(name)
-          value = props[name]
-        elsif attribute.default
-          value = attribute.default.call
-        end
+      props.each do |name, value|
+        send(self.class.attributes[name].setter, value)
 
-        send(attribute.setter, value)
+        mapping = [name, self.class.attributes[name]]
+
+        if self.class.attributes[name].collection?
+          if value.is_a?(Array)
+            value.each { all_content << mapping }
+          else
+            all_content << mapping
+          end
+        else
+          all_content << mapping
+        end
       end
+
+      self.class.attributes.each do |name, attribute|
+        next if props.key?(name) || !attribute.default
+
+        send(attribute.setter, attribute.default.call)
+      end
+    end
+
+    def all_content
+      @all_content ||= []
     end
   end
 end

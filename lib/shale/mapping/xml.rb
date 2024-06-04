@@ -95,6 +95,24 @@ module Shale
         @render_nil_default = val
       end
 
+      # Set preserve_element_order default
+      #
+      # @param [true, false] val
+      #
+      # @api private
+      def preserve_element_order(val)
+        @preserve_element_order = val
+      end
+
+      # Return value for preserve_element_order
+      #
+      # @return [Shale::Mapping::Descriptor::XmlNamespace]
+      #
+      # @api private
+      def preserve_element_order?
+        @preserve_element_order
+      end
+
       # Map group of nodes to mapping methods
       #
       # @param [Symbol] from

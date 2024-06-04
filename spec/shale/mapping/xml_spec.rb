@@ -370,6 +370,16 @@ RSpec.describe Shale::Mapping::Xml do
     end
   end
 
+  describe '#preserve_element_order' do
+    it 'sets preserve_element_order' do
+      obj = described_class.new
+      expect(obj.preserve_element_order?).to eq(nil)
+
+      obj.preserve_element_order(true)
+      expect(obj.preserve_element_order?).to eq(true)
+    end
+  end
+
   describe '#group' do
     context 'without namespaces' do
       it 'creates methods mappings' do
