@@ -21,8 +21,8 @@ module Shale
       # @raise [IncorrectMappingArgumentsError] when arguments are incorrect
       #
       # @api public
-      def map(key, to: nil, receiver: nil, using: nil, render_nil: nil, schema: nil)
-        super(key, to: to, receiver: receiver, using: using, render_nil: render_nil, schema: schema)
+      def map(key, to: nil, receiver: nil, using: nil, map: nil, render_nil: nil, schema: nil)
+        super(key, to: to, receiver: receiver, using: using, map: map, render_nil: render_nil, schema: schema)
       end
 
       # Set render_nil default
