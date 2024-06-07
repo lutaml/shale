@@ -86,6 +86,27 @@ module Shale
 
                   if value.nil?
                     casted_value = nil
+                  elsif mapping.child_mapping && value.is_a?(Hash)
+                    casted_value = value.map do |k, v|
+                      child_attribute = attribute.type.new
+
+                      mapping.child_mapping.each do |attr_name, path|
+                        attr_setter = attr_name.to_s + "="
+                        if path == :key
+                          child_attribute.send(attr_setter, k)
+                        elsif path == :value
+                          child_attribute.send(attr_setter, v)
+                        else
+                          path = [path] unless path.is_a?(Array)
+
+                          child_attribute.send(attr_setter, v.dig(*path.map(&:to_s)))
+                        end
+                      end
+
+                      child_attribute
+                    end
+
+                    casted_value = casted_value.last unless attribute.collection?
                   elsif attribute.collection?
                     casted_value = (value.is_a?(Array) ? value : [value]).map do |val|
                       unless val.nil?
@@ -208,6 +229,28 @@ module Shale
 
                   if value.nil?
                     hash[mapping.name] = nil if mapping.render_nil?
+                  elsif mapping.child_mapping
+                    value.map do |child_obj|
+                      map_key = nil
+                      map_value = {}
+
+                      mapping.child_mapping.each do |attr_name, path|
+                        if path == :key
+                          map_key = child_obj.send(attr_name)
+                        elsif path == :value
+                          map_value = child_obj.send(attr_name)
+                        else
+                          path = [path] unless path.is_a?(Array)
+
+                          path[0...-1].inject(map_value) do |acc, k|
+                            acc[k.to_s] ||= {}
+                          end.public_send(:[]=, path.last.to_s, child_obj.send(attr_name))
+                        end
+                      end
+
+                      hash[mapping.name] ||= {}
+                      hash[mapping.name][map_key] = map_value
+                    end
                   elsif attribute.collection?
                     hash[mapping.name] = [*value].map do |val|
                       if val

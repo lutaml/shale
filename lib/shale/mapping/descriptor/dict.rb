@@ -42,6 +42,13 @@ module Shale
         # @api private
         attr_reader :method_to
 
+        # Return child attribute where the key will be mapped
+        #
+        # @return [Symbol]
+        #
+        # @api private
+        attr_reader :child_mapping
+
         # Return group name
         #
         # @return [String]
@@ -62,18 +69,20 @@ module Shale
         # @param [Symbol, nil] attribute
         # @param [Symbol, nil] receiver
         # @param [Hash, nil] methods
+        # @param [Hash, nil] child_mapping
         # @param [String, nil] group
         # @param [true, false] render_nil
         # @param [Hash, nil] schema
         #
         # @api private
-        def initialize(name:, attribute:, receiver:, methods:, group:, render_nil:, schema: nil)
+        def initialize(name:, attribute:, receiver:, methods:, group:, render_nil:, schema: nil, child_mapping: nil)
           @name = name
           @attribute = attribute
           @receiver = receiver
           @group = group
           @render_nil = render_nil
           @schema = schema
+          @child_mapping = child_mapping
 
           if methods
             @method_from = methods[:from]
