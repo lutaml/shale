@@ -1,3 +1,13 @@
+# WARNING: This fork is no longer maintained.
+
+WARNING: This is the LutaML fork of the `shale` gem and is no longer maintained.
+
+LutaML enhancements originally provided here are now provided in:
+
+* [LutaML modeler for Ruby: lutaml-model](https://github.com/lutaml/lutaml-model/)
+
+Please file any issues or questions at: [lutaml-model](https://github.com/lutaml/lutaml-model/)
+
 # Shale
 
 Shale is a Ruby object mapper and serializer for JSON, YAML, TOML, CSV and XML.
